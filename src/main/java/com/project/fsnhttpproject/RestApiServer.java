@@ -10,18 +10,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-// 원본 Python: lec-06-prg-07-rest-server-v3.py 대응
 public class RestApiServer {
-    // 회원 정보를 저장할 인메모리 데이터베이스 (파이썬의 database = {} 대응)
+    // 회원 정보를 저장하기 위한 인메모리 데이터베이스
     private static final Map<String, String> database = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         String host = "localhost";
-        int port = 5000; // 파이썬 예제와 동일하게 5000번 포트 사용
+        int port = 5000;
 
+        // HTTP 서버 초기화
         HttpServer server = HttpServer.create(new InetSocketAddress(host, port), 0);
 
-        // API 경로 핸들러 등록
+        // 멤버십 API 처리를 위한 핸들러 등록
         server.createContext("/membership_api/", new MembershipHandler());
 
         server.setExecutor(null);
@@ -35,7 +35,7 @@ public class RestApiServer {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
 
-            // URL에서 member_id 추출 (예: /membership_api/0001 -> 0001)
+            // URL 경로에서 회원 ID 추출 (예: .../0001)
             String memberId = path.substring(path.lastIndexOf("/") + 1);
 
             System.out.println("\n## [" + method + "] Request for Member ID: " + memberId);
@@ -43,33 +43,34 @@ public class RestApiServer {
             String response = "";
             int statusCode = 200;
 
-            if (method.equalsIgnoreCase("POST")) {
+            // HTTP 메서드에 따른 요청 라우팅
+            if ("POST".equalsIgnoreCase(method)) {
                 response = createMember(exchange, memberId);
-            } else if (method.equalsIgnoreCase("GET")) {
+            } else if ("GET".equalsIgnoreCase(method)) {
                 response = readMember(memberId);
-            } else if (method.equalsIgnoreCase("PUT")) {
+            } else if ("PUT".equalsIgnoreCase(method)) {
                 response = updateMember(exchange, memberId);
-            } else if (method.equalsIgnoreCase("DELETE")) {
+            } else if ("DELETE".equalsIgnoreCase(method)) {
                 response = deleteMember(memberId);
             } else {
-                statusCode = 405; // Method Not Allowed
+                statusCode = 405; // 허용되지 않은 메서드 처리
                 response = formatJson(memberId, "Error: Method not supported");
             }
 
             sendResponse(exchange, statusCode, response);
         }
 
-        // Create (POST)
+        // 회원 생성 (POST)
         private String createMember(HttpExchange exchange, String id) throws IOException {
             String value = getRequestBody(exchange);
             if (database.containsKey(id)) {
-                return formatJson(id, "None"); // 이미 존재함
+                return formatJson(id, "None");
             }
             database.put(id, value);
             return formatJson(id, value);
         }
 
-        // Read (GET)
+        // 회원 조회 (GET)
         private String readMember(String id) {
             if (database.containsKey(id)) {
                 return formatJson(id, database.get(id));
@@ -77,7 +78,7 @@ public class RestApiServer {
             return formatJson(id, "None");
         }
 
-        // Update (PUT)
+        // 회원 정보 수정 (PUT)
         private String updateMember(HttpExchange exchange, String id) throws IOException {
             String value = getRequestBody(exchange);
             if (database.containsKey(id)) {
@@ -87,7 +88,7 @@ public class RestApiServer {
             return formatJson(id, "None");
         }
 
-        // Delete (DELETE)
+        // 회원 삭제 (DELETE)
         private String deleteMember(String id) {
             if (database.containsKey(id)) {
                 database.remove(id);
@@ -96,25 +97,27 @@ public class RestApiServer {
             return formatJson(id, "None");
         }
 
-        // Body 데이터 읽기 헬퍼 함수
+        // 요청 본문(Body) 읽기 헬퍼 메서드
         private String getRequestBody(HttpExchange exchange) throws IOException {
             InputStream is = exchange.getRequestBody();
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
 
-        // JSON 형식 문자열 생성 헬퍼 (라이브러리 없이 구현)
+        // JSON 문자열 포맷팅 헬퍼 메서드
         private String formatJson(String key, String value) {
             return String.format("{\"%s\": \"%s\"}", key, value);
         }
 
-        // 응답 전송 헬퍼
+        // 응답 전송 헬퍼 메서드
         private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+
             exchange.sendResponseHeaders(statusCode, responseBytes.length);
-            OutputStream os = exchange.getResponseBody();
-            os.write(responseBytes);
-            os.close();
+
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(responseBytes);
+            }
             System.out.println("   >> Response: " + response);
         }
     }
