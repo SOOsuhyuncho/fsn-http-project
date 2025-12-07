@@ -8,13 +8,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-// 원본 Python 코드: lec-06-prg-02-http-web-client.py 대응
+// 원본 Python 코드: lec-06-prg-02-http-web-client.py
 public class HttpWebClient {
 
     public static void main(String[] args) {
         System.out.println("## HTTP client started.");
 
-        // 1. GET 요청: 디렉토리 조회 (단순 경로)
+        // 1. GET 요청: 디렉토리 조회 (단순 경로 확인)
         sendGetRequest("http://localhost:8080/temp/");
 
         // 2. GET 요청: 파라미터 전달 (계산 요청: 9 x 9)
@@ -26,15 +26,16 @@ public class HttpWebClient {
         System.out.println("## HTTP client completed.");
     }
 
-    // GET 요청을 보내는 함수
+    // GET 요청 전송 함수
     private static void sendGetRequest(String targetUrl) {
         System.out.println("## GET request for " + targetUrl);
         try {
             URL url = new URL(targetUrl);
+            // Java의 기본 HttpURLConnection을 사용하여 연결 생성
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("GET");
 
-            // 응답 출력
+            // 서버 응답 출력
             printResponse(con, "GET");
             con.disconnect();
         } catch (Exception e) {
@@ -42,14 +43,14 @@ public class HttpWebClient {
         }
     }
 
-    // POST 요청을 보내는 함수
+    // POST 요청 전송 함수
     private static void sendPostRequest(String targetUrl, String postData) {
         System.out.println("## POST request for " + targetUrl + " with " + postData);
         try {
             URL url = new URL(targetUrl);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("POST");
-            con.setDoOutput(true); // Body 데이터 전송을 위해 필수 설정
+            con.setDoOutput(true); // Body 데이터 전송을 위해 출력 스트림 활성화
 
             // 데이터 전송 (Body 쓰기)
             try (OutputStream os = con.getOutputStream()) {
@@ -57,7 +58,7 @@ public class HttpWebClient {
                 os.write(input, 0, input.length);
             }
 
-            // 응답 출력
+            // 서버 응답 출력
             printResponse(con, "POST");
             con.disconnect();
         } catch (Exception e) {
@@ -65,15 +66,16 @@ public class HttpWebClient {
         }
     }
 
-    // 서버로부터 온 응답을 읽어서 출력하는 함수
+    // 서버로부터 온 응답을 읽어서 콘솔에 출력하는 헬퍼 함수
     private static void printResponse(HttpURLConnection con, String method) throws IOException {
         System.out.println("## " + method + " response [start]");
 
-        // 입력 스트림(데이터) 읽기
+        // 입력 스트림(데이터) 읽기 (UTF-8 처리)
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
             StringBuilder response = new StringBuilder();
             String responseLine;
+            // 한 줄씩 읽어서 문자열 생성
             while ((responseLine = br.readLine()) != null) {
                 response.append(responseLine.trim());
             }
